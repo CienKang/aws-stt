@@ -29,8 +29,6 @@ session = boto3.Session(
 s3 = session.client('s3')
 
 
-
-
 # FastAPI 
 app = FastAPI()
 
@@ -56,7 +54,7 @@ async def ping():
 
 
 @app.post("/transcribe_video")
-async def transcribe_audio(file: UploadFile = File(...)):
+async def transcribe_video(file: UploadFile = File(...)):
 
     os.makedirs("videos", exist_ok=True)
     os.makedirs("audios", exist_ok=True)
@@ -80,7 +78,11 @@ async def transcribe_audio(file: UploadFile = File(...)):
     thread.start()
 
     return {
-        "message": "The process has started.",
+        "message": "The process has started. Please wait for complete process.",
+        "s3_object_urls": {
+            "documentation": f'https://{S3_BUCKET}.s3.amazonaws.com/{documenataion_file_path}',
+            "transcript": f'https://{S3_BUCKET}.s3.amazonaws.com/{transcript_file_path}'
+        }
     }
 
 
@@ -154,7 +156,16 @@ async def ping(body: DownloadUrl):
         Bucket=S3_BUCKET,
         Prefix=body.s3_object_url.split("amazonaws.com/")[1]
         )
-    return results
+    if 'Contents' not in results:
+        return {
+            "success": "false",
+            "message": "Content not found. Cant be downloaded."
+        }
+    else :
+        return {
+            "success": "true",
+            "message": "Content found."
+        }
     
 
 @app.post("/download")
