@@ -16,6 +16,7 @@ from pydub import AudioSegment
 
 import utils
 import openai_utils
+import auth_utils
 
 
 # AWS Configuration and functions
@@ -46,6 +47,27 @@ class TranscriptS3Url(BaseModel):
 
 class DownloadUrl(BaseModel):
     s3_object_url: str
+
+
+class loginBody(BaseModel):
+    username: str
+    password: str
+    fmno: int
+
+class registerBody(BaseModel):
+    username: str
+    password: str
+    fmno: int
+
+
+class validateTokenBody(BaseModel):
+    token: str
+
+
+@app.post("/login")
+async def login(body: loginBody):
+    return auth_utils.authenticate_user(username=body.username, fmno=body.fmno, password=body.password)
+
 
 
 @app.get("/health_check")
