@@ -4,7 +4,7 @@ import threading
 import boto3
 from botocore.exceptions import ClientError
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from pydantic import BaseModel
@@ -16,8 +16,12 @@ from pydub import AudioSegment
 
 import utils
 import openai_utils
-import auth_utils
+import postgres.auth_utils as auth_utils
 
+import postgres.models as model
+from postgres.config import  engine
+
+model.Base.metadata.create_all(bind=engine)
 
 # AWS Configuration and functions
 S3_BUCKET = os.environ["S3_BUCKET"]
@@ -60,7 +64,7 @@ class registerBody(BaseModel):
     fmno: int
 
 
-class validateTokenBody(BaseModel):
+class tokenBody(BaseModel):
     token: str
 
 
@@ -68,7 +72,13 @@ class validateTokenBody(BaseModel):
 async def login(body: loginBody):
     return auth_utils.authenticate_user(username=body.username, fmno=body.fmno, password=body.password)
 
+@app.post("/register")
+async def register(body: registerBody):
+    return auth_utils.register_user(username=body.username, fmno=body.fmno, password=body.password)
 
+@app.post("/validate_token")
+async def validate_token(body: tokenBody):
+    return auth_utils.validate_token(body.token)
 
 @app.get("/health_check")
 async def ping():
@@ -76,17 +86,17 @@ async def ping():
 
 
 @app.post("/transcribe_video")
-async def transcribe_video(file: UploadFile = File(...)):
+async def transcribe_video(file: UploadFile = File(), id: str = Form() ):
 
-    os.makedirs("videos", exist_ok=True)
-    os.makedirs("audios", exist_ok=True)
-    os.makedirs("transcripts", exist_ok=True)
-    os.makedirs("documentations", exist_ok=True)
+    os.makedirs(f'{id}/videos/', exist_ok=True)
+    os.makedirs(f'{id}/audios', exist_ok=True)
+    os.makedirs(f'{id}/transcripts', exist_ok=True)
+    os.makedirs(f'{id}/documentations', exist_ok=True)
 
-    video_file_path = f"videos/{file.filename}"
-    audio_file_path = f"audios/{file.filename.split('.')[0]}.mp3"
-    transcript_file_path = f"transcripts/{file.filename.split('.')[0]}.txt"
-    documenataion_file_path = f"documentations/{file.filename.split('.')[0]}.md"
+    video_file_path = f"{id}/videos/{file.filename}"
+    audio_file_path = f"{id}/audios/{file.filename.split('.')[0]}.mp3"
+    transcript_file_path = f"{id}/transcripts/{file.filename.split('.')[0]}.txt"
+    documenataion_file_path = f"{id}/documentations/{file.filename.split('.')[0]}.md"
 
     with open(video_file_path, "wb") as f:
         f.write(file.file.read())

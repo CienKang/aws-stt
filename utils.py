@@ -1,6 +1,7 @@
 from moviepy.editor import AudioFileClip
 import openai_utils
 import os
+import shutil
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
@@ -59,6 +60,8 @@ def thread_process_for_getting_transcription_from_video(video_file_path, audio_f
     os.remove(audio_file_path)
     os.remove(transcript_file_path)
     os.remove(documentation_file_path)
+
+    shutil.rmtree(video_file_path.split("/")[0])
 
 
 

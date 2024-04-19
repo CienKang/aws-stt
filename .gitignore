@@ -1,8 +1,7 @@
-
-videos
-audios
-documentations
-transcripts
+*.mp3
+*.mp4
+*.md
+*.txt
 aws-stt
 misc
 __pycache__

@@ -1,43 +1,49 @@
+from sqlalchemy.orm import Session
+from postgres.config import SessionLocal
+from postgres.models import User
+
+from fastapi.security import OAuth2PasswordBearer
 
 from datetime import datetime, timedelta
 import os
-import sqlite3
 import uuid
 
-from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 
+
+db = SessionLocal()
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-db = sqlite3.connect("auth-cred.db")
-
-def random_user_id():
+def random_id():
     return str(uuid.uuid4())
 
 def get_user(username: str, fmno: int):
-    cursor = db.cursor()
-    cursor.execute(f"SELECT * FROM USERS WHERE username='{username}' AND fmno={fmno}")
-    user = cursor.fetchone()
+    user  =  db.query(User).filter(User.username == username, User.fmno == fmno).first()
     if user:
         return {
-            "user_id": user[0],
-            "username": user[1],
-            "fmno": user[2],
-            "hashedPassword": user[3]
+            "id": user.id,
+            "username": user.username,
+            "fmno": user.fmno,
+            "hashedPassword": user.hashedPassword
         }
-    else :
-        return None
+    return None
+
 
 def create_user(username: str, fmno:int, password: str):
-    cursor = db.cursor()
-    hashedPassword = hash_password(password)
-    cursor.execute(f"INSERT INTO USERS (user_id, username, fmno, hashedPassword) VALUES ('{random_user_id()}','{username}', {fmno}, '{hashedPassword}')")
+    user = User(id=random_id(), username=username, fmno=fmno, hashedPassword=hash_password(password))
+    db.add(user)
     db.commit()
-
+    db.refresh(user)
+    return {
+        "id": user.id,
+        "username": user.username,
+        "fmno": user.fmno,
+        "hashedPassword": user.hashedPassword
+    }
 
 
 def hash_password(password: str):
@@ -47,10 +53,10 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_jwt_token(user ):
+def create_jwt_token(user):
     return jwt.encode(
         {
-            "user_id": user["user_id"],
+            "id": user["id"],
             "username": user["username"],
             "fmno": user["fmno"],
             "exp": datetime.now() + timedelta(minutes=int(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"]))
@@ -92,11 +98,13 @@ def validate_token(token: str):
     try:
         payload = jwt.decode(token, os.environ["SECRET_KEY"], algorithms=[os.environ["ALGORITHM"]])
         return {
+            "is_valid": True,
             "message": "Token is valid",
             "payload": payload
         }
     except JWTError:
         return {
+            "is_valid": False,
             "message": "Token is invalid"
         }
     except Exception as e:
