@@ -4,30 +4,35 @@ client = OpenAI()
 
 def get_transcription(audio_file_path):
 
-    file = open(audio_file_path, "rb")
+    audio_file = open(audio_file_path, "rb")
     transcript = client.audio.transcriptions.create(
-    model="whisper-1", 
-    file=file, 
-    response_format="verbose_json",
-    language="en"
+        file=audio_file,
+        model="whisper-1",
+        response_format="verbose_json",
+        timestamp_granularities=["segment"],
     )
 
     return transcript
 
 
 
-def get_documentation(transcript):
-    content = client.chat.completions.create(
+def get_documentation(transcript_file_path):
+
+    content = open(transcript_file_path, "r").read()
+    messages = [
+        {
+            "role": "user",
+            "content": """ Create a documentation in markdown format(ex Readme.MD) from the given content.
+             The content contains the entire dialogues by the respective speakers of a transcribed audio. Please use this
+             while preparing the documentation, wherever necessary""",
+        },
+        {"role": "user", "content": content},
+    ]
+
+    chat_completion = client.chat.completions.create(
+        messages=messages,
         model="gpt-4-turbo-preview",
-        messages=[
-            {"role": "system", "content": '''You are a helpful assistant. You have to create a documentations for the audio file. 
-             Write steps on what to do as said in the audio file. Make it look professional. 
-             Dont put anything not related to the technical documentation.
-             Also dont add anything form your own. Just keep what was said in the video.
-              Make it look like a readme.md file.
-             It should strictly contain readme.md file format. No ```mardown something like that'''},
-            {"role": "user", "content": transcript}
-        ]
     )
 
-    return content
+    document = chat_completion.choices[0].message.content
+    return document
