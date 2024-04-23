@@ -1,5 +1,6 @@
 from moviepy.editor import AudioFileClip
 import openai_utils
+import postgres.files_utils as files_utils
 import os
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -53,6 +54,12 @@ def thread_process_for_getting_transcription_from_video(video_file_path, audio_f
         f.write(content.choices[0].message.content)
     upload_file_to_s3(open(documentation_file_path, "rb"), documentation_file_path, s3, S3_BUCKET)
     logging.info("Uploaded documentation file to s3..........")
+
+
+    files_utils.update_file_status(video_file_path.split("/")[1], True)
+    files_utils.update_file_status(audio_file_path.split("/")[1], True)
+    files_utils.update_file_status(transcript_file_path.split("/")[1], True)
+    files_utils.update_file_status(documentation_file_path.split("/")[1], True)
 
 
     os.remove(video_file_path)
