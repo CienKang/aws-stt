@@ -119,6 +119,10 @@ async def ping(body: DownloadUrl):
 async def get_files():
     return files_utils.get_files()    
 
+@app.delete("/files/{file_id}")
+async def delete_file(file_id: int):
+    return files_utils.delete_file(file_id)
+
 @app.post("/download")
 async def download(body: DownloadUrl):
     s3_object_url = body.s3_object_url

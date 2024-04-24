@@ -34,3 +34,9 @@ def update_file_status(filename: str, is_processed: bool):
     db.commit()
     db.refresh(db_file)
     return db_file
+
+def delete_file(id: int):
+    db_file = db.query(File).filter(File.id == id).first()
+    db.delete(db_file)
+    db.commit()
+    return db_file
