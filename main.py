@@ -6,22 +6,18 @@ from botocore.exceptions import ClientError
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-
 from pydantic import BaseModel
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-from pydub import AudioSegment
 
 import utils
-import openai_utils
 import postgres.files_utils as files_utils
 
 
 import postgres.models as model
 from postgres.config import  engine
-
 model.Base.metadata.create_all(bind=engine)
 
 # AWS Configuration and functions
