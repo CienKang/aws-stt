@@ -17,13 +17,7 @@ S3_BUCKET=...........
 ```
 
 
-
-### Create docker image 
+### just compose up 
 ```
-docker build -t stt-fastapi-image .      
-```
-
-### Run using the .env file
-```
-docker run --env-file .env  -p 8000:8000 stt-fastapi-image 
+docker compose up --build
 ```

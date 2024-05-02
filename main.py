@@ -6,17 +6,19 @@ from botocore.exceptions import ClientError
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-
 from pydantic import BaseModel
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-from pydub import AudioSegment
 
 import utils
-import openai_utils
+import postgres.files_utils as files_utils
 
+
+import postgres.models as model
+from postgres.config import  engine
+model.Base.metadata.create_all(bind=engine)
 
 # AWS Configuration and functions
 S3_BUCKET = os.environ["S3_BUCKET"]
@@ -77,6 +79,11 @@ async def transcribe_video(file: UploadFile = File(...)):
 
     thread.start()
 
+    files_utils.create_file(file.filename, f"https://{S3_BUCKET}.s3.amazonaws.com/{video_file_path}", "video", False)
+    files_utils.create_file(file.filename.split('.')[0] + '.mp3', f"https://{S3_BUCKET}.s3.amazonaws.com/{audio_file_path}", "audio", False)
+    files_utils.create_file(file.filename.split('.')[0] + '.txt', f"https://{S3_BUCKET}.s3.amazonaws.com/{transcript_file_path}", "transcript", False)
+    files_utils.create_file(file.filename.split('.')[0] + '.md', f"https://{S3_BUCKET}.s3.amazonaws.com/{documenataion_file_path}", "documentation", False)
+
     return {
         "message": "The process has started. Please wait for complete process.",
         "s3_object_urls": {
@@ -84,71 +91,6 @@ async def transcribe_video(file: UploadFile = File(...)):
             "transcript": f'https://{S3_BUCKET}.s3.amazonaws.com/{transcript_file_path}'
         }
     }
-
-
-
-@app.post("/transcribe_audio")
-async def transcribe_audio(file: UploadFile = File(...)):
-
-    os.makedirs("audios", exist_ok=True)
-    os.makedirs("transcripts", exist_ok=True)
-
-    audio_file_path = f"audios/{file.filename}"
-    transcript_file_path = f"transcripts/{file.filename.split('.')[0]}.txt"
-
-    with open(audio_file_path, "wb") as f:
-        f.write(file.file.read())
-
-    thread = threading.Thread(target=utils.thread_process_for_getting_transcription_from_audio, args=(
-        audio_file_path, transcript_file_path, 
-        s3, S3_BUCKET
-    ))
-    thread.start()
-
-    return {
-        "message": "The process has started.",
-    }
-    
-
-
-@app.post("/create_documentation")
-async def create_documentation(body: TranscriptS3Url):
-    transcript_file_path = body.transcript_s3_url.split("amazonaws.com/")[1]
-
-    results = s3.list_objects(
-        Bucket=S3_BUCKET,
-        Prefix=body.transcript_s3_url.split("amazonaws.com/")[1]
-    )
-
-    if 'Contents' not in results:
-        return {
-            "message": "Content not found"
-        }
-    
-    logging.info("Downloading transcript file..........")
-    os.makedirs("documentations", exist_ok=True)
-    os.makedirs("transcripts", exist_ok=True)
-    s3.download_file(S3_BUCKET, transcript_file_path, transcript_file_path)
-
-    logging.info("Downloaded transcript file..........")
-    documentation_file_path = transcript_file_path.replace("transcripts", "documentations")
-    documentation_file_path = documentation_file_path.replace(".txt", ".md")
-
-    with open(transcript_file_path, "r") as f:
-        transcript = f.read()
-
-    thread = threading.Thread(target=utils.thread_process_for_getting_documentation, args=(
-        transcript_file_path, documentation_file_path, 
-        transcript, 
-        s3, S3_BUCKET
-    ))
-    thread.start()
-
-    return {
-        "message": "Started",
-    }
-
-    
 
 @app.post("/check_file")
 async def ping(body: DownloadUrl):
@@ -162,11 +104,20 @@ async def ping(body: DownloadUrl):
             "message": "Content not found. Cant be downloaded."
         }
     else :
+        filename = body.s3_object_url.split("amazonaws.com/")[1].split('/')[1]
+        files_utils.update_file_status(filename, True)
         return {
             "success": "true",
             "message": "Content found."
         }
-    
+
+@app.get("/files")
+async def get_files():
+    return files_utils.get_files()    
+
+@app.delete("/files/{file_id}")
+async def delete_file(file_id: int):
+    return files_utils.delete_file(file_id)
 
 @app.post("/download")
 async def download(body: DownloadUrl):
