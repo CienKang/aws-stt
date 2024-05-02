@@ -117,7 +117,12 @@ async def get_files():
 
 @app.delete("/files/{file_id}")
 async def delete_file(file_id: int):
-    return files_utils.delete_file(file_id)
+    file = files_utils.delete_file(file_id)
+    if file is None:
+        return {"message": "File not found"}
+    
+    return utils.delete_file_from_s3(file.s3_url.split('.com/')[1], s3, S3_BUCKET)
+
 
 @app.post("/download")
 async def download(body: DownloadUrl):

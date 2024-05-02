@@ -21,6 +21,17 @@ def upload_file_to_s3(file, file_path, s3, S3_BUCKET):
     return {"success": True}
 
 
+def delete_file_from_s3(file_path, s3, S3_BUCKET):
+    try:
+        s3.delete_object(Bucket=S3_BUCKET, Key=file_path)
+    except Exception as e:
+        return {"error": e}
+
+    return {
+        "success": True,
+        "message": "File deleted successfully."
+    }
+
 
 def thread_process_for_getting_transcription_from_video(video_file_path, audio_file_path, transcript_file_path, documentation_file_path, s3, S3_BUCKET):
     

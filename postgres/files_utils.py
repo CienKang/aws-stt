@@ -37,6 +37,10 @@ def update_file_status(filename: str, is_processed: bool):
 
 def delete_file(id: int):
     db_file = db.query(File).filter(File.id == id).first()
-    db.delete(db_file)
-    db.commit()
+    if db_file:
+        db.delete(db_file)
+        db.commit()
+    else :
+        return None
+    
     return db_file
