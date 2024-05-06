@@ -22,6 +22,7 @@ model.Base.metadata.create_all(bind=engine)
 
 # AWS Configuration and functions
 S3_BUCKET = os.environ["S3_BUCKET"]
+S3_IMAGE_BUCKET = os.environ["S3_IMAGE_BUCKET"]
 
 session = boto3.Session(
     aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
@@ -74,7 +75,7 @@ async def transcribe_video(file: UploadFile = File(...)):
 
     thread = threading.Thread(target=utils.thread_process_for_getting_transcription_from_video, args=(
         video_file_path, audio_file_path, transcript_file_path, documenataion_file_path, 
-        s3, S3_BUCKET
+        s3, S3_BUCKET, S3_IMAGE_BUCKET
     ))
 
     thread.start()
