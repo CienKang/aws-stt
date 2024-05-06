@@ -103,3 +103,7 @@ def thread_process_for_getting_transcription_from_video(video_file_path, audio_f
     os.remove(audio_file_path)
     os.remove(transcript_file_path)
     os.remove(documentation_file_path)
+    for screenshot in os.listdir(screenshots_file_path):
+        os.remove(screenshots_file_path + "/" + screenshot)
+    
+    
