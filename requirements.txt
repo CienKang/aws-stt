@@ -38,3 +38,4 @@ tqdm==4.66.2
 typing_extensions==4.11.0
 urllib3==2.2.1
 uvicorn==0.29.0
+opencv-python==4.9.0.80
